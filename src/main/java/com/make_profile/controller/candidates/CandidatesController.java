@@ -1,0 +1,166 @@
+package com.make_profile.controller.candidates;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.make_profile.dto.candidates.CandidateAdditionalDetailsDto;
+import com.make_profile.dto.candidates.CandidateDto;
+import com.make_profile.dto.candidates.CandidateImageDto;
+import com.make_profile.service.candidates.CandidateService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.websocket.server.PathParam;
+
+@RestController
+@RequestMapping("/candidate")
+public class CandidatesController {
+
+    private static final Logger logger = LoggerFactory.getLogger(CandidatesController.class);
+
+    @Autowired
+    CandidateService candidateService;
+
+    @Autowired
+    HttpServletRequest httpRequest;
+
+    @PostMapping("/create")
+    public ResponseEntity<?> createCandidate(@RequestBody CandidateDto candidateDto,
+                                             @RequestHeader("username") String username, @RequestHeader("userid") Long userid) {
+        logger.debug("Controller :: createCandidate :: Entered");
+
+        if (userid != null) {
+            candidateDto.setCreatedUser(Long.valueOf(userid));
+        }
+
+        CandidateDto createCandidateDto = candidateService.createCandidate(candidateDto, username);
+
+        logger.debug("Controller :: createCandidate :: Exited");
+
+        return new ResponseEntity<>(createCandidateDto, HttpStatus.OK);
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getCandidateById() {
+        logger.debug("Controller :: getCandidateById :: Entered");
+
+        String userName = httpRequest.getHeader("userName");
+        CandidateDto candidateById = null;
+
+        if (userName != null) {
+            candidateById = candidateService.getCandidateById(userName);
+        }
+        userName = null;
+        logger.debug("Controller :: getCandidateById :: Exited");
+
+        return new ResponseEntity<>(candidateById, HttpStatus.OK);
+    }
+
+    @PostMapping("/upload-image")
+    public ResponseEntity<?> uploadCandidateImage(@ModelAttribute CandidateImageDto candidateImageDto) {
+        logger.debug("Controller :: uploadCandidateImage :: Entered");
+
+        byte[] uploadCandidateImagId = candidateService.uploadCandidateImage(candidateImageDto);
+
+        logger.debug("Controller :: uploadCandidateImage :: Exited");
+
+        return new ResponseEntity<>(uploadCandidateImagId, HttpStatus.OK);
+    }
+
+    @PostMapping("/get-image")
+    public ResponseEntity<?> getCandidateImage(@RequestParam("candidateId") Long candidateId) {
+        logger.debug("Controller :: getCandidateImage :: Entered");
+
+        byte[] uploadCandidateImagId = candidateService.getCandidateImage(candidateId);
+
+        logger.debug("Controller :: getCandidateImage :: Exited");
+
+        return new ResponseEntity<>(uploadCandidateImagId, HttpStatus.OK);
+    }
+
+    @PostMapping("/save-additoinal-details")
+    public ResponseEntity<?> saveAdditionalDetails(
+            @RequestBody CandidateAdditionalDetailsDto candidateAdditionalDetailsDto,
+            @RequestHeader("username") String username) {
+        logger.debug("Controller :: saveAdditionalDetails :: Entered");
+
+        boolean createCandidateDto = candidateService.saveAdditionalDetails(candidateAdditionalDetailsDto);
+
+        logger.debug("Controller :: saveAdditionalDetails :: Exited");
+
+        return new ResponseEntity<>(createCandidateDto, HttpStatus.OK);
+    }
+
+    @GetMapping("/by_mobile")
+    public ResponseEntity<?> getAdditionalDetails(@PathParam("mobile") String mobile) {
+        logger.debug("Controller :: getAdditionalDetails :: Entered");
+
+        CandidateAdditionalDetailsDto candidateDetails = candidateService.getCandidateDetails(mobile.trim());
+
+        logger.debug("Controller :: getAdditionalDetails :: Exited");
+
+        return new ResponseEntity<>(candidateDetails, HttpStatus.OK);
+    }
+
+    @PostMapping("/check_mobile")
+    public ResponseEntity<?> checkMobileExists(@RequestParam("mobile") String mobile) {
+        logger.debug("Controller :: checkMobileExists :: Entered");
+
+        boolean exists = candidateService.mobileExists(mobile);
+
+        logger.debug("Controller :: checkMobileExists :: Exited");
+        return new ResponseEntity<>(exists, HttpStatus.OK);
+    }
+
+    @PostMapping("/check_candidate")
+    public ResponseEntity<?> checkCandidateExitsDetailsWihtNewDetails(@RequestBody CandidateDto candidateDto,
+                                                                      @RequestHeader("username") String username, @RequestHeader("userid") Long userid) {
+        logger.debug("Controller :: checkCandidateExitsDetailsWihtNewDetails :: Entered");
+
+        boolean status = candidateService.checkCandidateExistDetails(candidateDto, username);
+
+        logger.debug("Controller :: checkCandidateExitsDetailsWihtNewDetails :: Exited");
+
+        return new ResponseEntity<>(status, HttpStatus.OK);
+    }
+
+
+    @PostMapping("/get-bytearray")
+    public ResponseEntity<?> getCandidateResumeByteArray(@RequestBody CandidateDto candidateDto,@RequestParam("additionalDetails") boolean additionalDetails
+    ) {
+        logger.debug("Controller :: getCandidateResumeByteArray :: Entered");
+
+        byte[] status = candidateService.candidateResumeByteArray(candidateDto,additionalDetails);
+
+        logger.debug("Controller :: getCandidateResumeByteArray :: Exited");
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=resume.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(status);
+    }
+
+    @GetMapping("/delete-image")
+    public ResponseEntity<?> removeCandidateImage(@RequestParam("candidateId") String candidateId) {
+        logger.debug("Controller :: removeCandidateImage :: Entered");
+
+        candidateService.removeCandidateImage(Long.valueOf(candidateId));
+
+        logger.debug("Controller :: removeCandidateImage :: Exited");
+
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+}
